@@ -24,6 +24,20 @@ const month_names = {
         'November',
         'December'
     ],
+    es: [
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre'
+    ],
     ru: [
         'Январь',
         'Февраль',
@@ -37,6 +51,48 @@ const month_names = {
         'Октябрь',
         'Ноябрь',
         'Декабрь'
+    ],
+    ptBr: [
+        'Janeiro',
+        'Fevereiro',
+        'Março',
+        'Abril',
+        'Maio',
+        'Junho',
+        'Julho',
+        'Agosto',
+        'Setembro',
+        'Outubro',
+        'Novembro',
+        'Dezembro'
+    ],
+    fr: [
+        'Janvier',
+        'Février',
+        'Mars',
+        'Avril',
+        'Mai',
+        'Juin',
+        'Juillet',
+        'Août',
+        'Septembre',
+        'Octobre',
+        'Novembre',
+        'Décembre'
+    ],
+    tr: [
+        'Ocak',
+        'Şubat',
+        'Mart',
+        'Nisan',
+        'Mayıs',
+        'Haziran',
+        'Temmuz',
+        'Ağustos',
+        'Eylül',
+        'Ekim',
+        'Kasım',
+        'Aralık'
     ]
 };
 
@@ -392,17 +448,21 @@ $.attr = (element, attr, value) => {
 };
 
 class Bar {
-    constructor(gantt, task) {
-        this.set_defaults(gantt, task);
+    constructor(gantt, task, period) {
+        if (!period) {
+            period = task;
+        }
+        this.set_defaults(gantt, task, period);
         this.prepare();
         this.draw();
         this.bind();
     }
 
-    set_defaults(gantt, task) {
+    set_defaults(gantt, task, period) {
         this.action_completed = false;
         this.gantt = gantt;
         this.task = task;
+        this.period = period;
     }
 
     prepare() {
@@ -417,7 +477,7 @@ class Bar {
         this.y = this.compute_y();
         this.corner_radius = this.gantt.options.bar_corner_radius;
         this.duration =
-            date_utils.diff(this.task._end, this.task._start, 'hour') /
+            date_utils.diff(this.period._end, this.period._start, 'hour') /
             this.gantt.options.step;
         this.width = this.gantt.options.column_width * this.duration;
         this.progress_width =
@@ -585,10 +645,15 @@ class Bar {
     show_popup() {
         if (this.gantt.bar_being_dragged) return;
 
-        const start_date = date_utils.format(this.task._start, 'MMM D');
+        const start_date = date_utils.format(
+            this.period._start,
+            'MMM D',
+            this.gantt.options.language
+        );
         const end_date = date_utils.format(
-            date_utils.add(this.task._end, -1, 'second'),
-            'MMM D'
+            date_utils.add(this.period._end, -1, 'second'),
+            'MMM D',
+            this.gantt.options.language
         );
         const subtitle = start_date + ' - ' + end_date;
 
@@ -630,14 +695,14 @@ class Bar {
         let changed = false;
         const { new_start_date, new_end_date } = this.compute_start_end_date();
 
-        if (Number(this.task._start) !== Number(new_start_date)) {
+        if (Number(this.period._start) !== Number(new_start_date)) {
             changed = true;
-            this.task._start = new_start_date;
+            this.period._start = new_start_date;
         }
 
-        if (Number(this.task._end) !== Number(new_end_date)) {
+        if (Number(this.period._end) !== Number(new_end_date)) {
             changed = true;
-            this.task._end = new_end_date;
+            this.period._end = new_end_date;
         }
 
         if (!changed) return;
@@ -686,7 +751,7 @@ class Bar {
 
     compute_x() {
         const { step, column_width } = this.gantt.options;
-        const task_start = this.task._start;
+        const task_start = this.period._start;
         const gantt_start = this.gantt.gantt_start;
 
         const diff = date_utils.diff(task_start, gantt_start, 'hour');
@@ -1039,44 +1104,23 @@ class Gantt {
 
     setup_tasks(tasks) {
         // prepare tasks
+        const self = this;
+        let index = 0;
         this.tasks = tasks.map((task, i) => {
-            // convert to Date objects
-            task._start = date_utils.parse(task.start);
-            task._end = date_utils.parse(task.end);
-
-            // make task invalid if duration too large
-            if (date_utils.diff(task._end, task._start, 'year') > 10) {
-                task.end = null;
-            }
-
             // cache index
             task._index = i;
+            task._barIndex = index;
 
-            // invalid dates
-            if (!task.start && !task.end) {
-                const today = date_utils.today();
-                task._start = today;
-                task._end = date_utils.add(today, 2, 'day');
-            }
-
-            if (!task.start && task.end) {
-                task._start = date_utils.add(task._end, -2, 'day');
-            }
-
-            if (task.start && !task.end) {
-                task._end = date_utils.add(task._start, 2, 'day');
-            }
-
-            // if hours is not set, assume the last day is full day
-            // e.g: 2018-09-09 becomes 2018-09-09 23:59:59
-            const task_end_values = date_utils.get_date_values(task._end);
-            if (task_end_values.slice(3).every(d => d === 0)) {
-                task._end = date_utils.add(task._end, 24, 'hour');
-            }
-
-            // invalid flag
-            if (!task.start || !task.end) {
-                task.invalid = true;
+            // Build dates
+            self.setup_period(task);
+            // Setup periods
+            if (task.periods && Array.isArray(task.periods)) {
+                task.periods.forEach(period => {
+                    self.setup_period(period);
+                });
+                index += task.periods.length;
+            } else {
+                task.periods = null;
             }
 
             // dependencies
@@ -1096,10 +1140,50 @@ class Gantt {
                 task.id = generate_id(task);
             }
 
+            index++;
             return task;
         });
 
         this.setup_dependencies();
+    }
+
+    setup_period(o) {
+        // convert to Date objects
+        o._start = date_utils.parse(o.start);
+        o._end = date_utils.parse(o.end);
+
+        // make task invalid if duration too large
+        if (date_utils.diff(o._end, o._start, 'year') > 10) {
+            o.end = null;
+        }
+
+        // invalid dates
+        if (!o.start && !o.end) {
+            const today = date_utils.today();
+            o._start = today;
+            o._end = date_utils.add(today, 2, 'day');
+        }
+
+        if (!o.start && o.end) {
+            o._start = date_utils.add(o._end, -2, 'day');
+        }
+
+        if (o.start && !o.end) {
+            o._end = date_utils.add(o._start, 2, 'day');
+        }
+
+        // if hours is not set, assume the last day is full day
+        // e.g: 2018-09-09 becomes 2018-09-09 23:59:59
+        const task_end_values = date_utils.get_date_values(o._end);
+        if (task_end_values.slice(3).every(d => d === 0)) {
+            o._end = date_utils.add(o._end, 24, 'hour');
+        }
+
+        // invalid flag
+        if (!o.start || !o.end) {
+            o.invalid = true;
+        }
+        return o;
     }
 
     setup_dependencies() {
@@ -1164,6 +1248,18 @@ class Gantt {
             }
             if (!this.gantt_end || task._end > this.gantt_end) {
                 this.gantt_end = task._end;
+            }
+
+            if (task.periods) {
+                for (let period of task.periods) {
+                    // set global start and end date
+                    if (!this.gantt_start || period._start < this.gantt_start) {
+                        this.gantt_start = period._start;
+                    }
+                    if (!this.gantt_end || period._end > this.gantt_end) {
+                        this.gantt_end = period._end;
+                    }
+                }
             }
         }
 
@@ -1509,10 +1605,22 @@ class Gantt {
     }
 
     make_bars() {
-        this.bars = this.tasks.map(task => {
+        this.bars = [];
+        this.tasks.forEach(task => {
+            // Create main bar for task
             const bar = new Bar(this, task);
             this.layers.bar.appendChild(bar.group);
-            return bar;
+            this.bars.push(bar);
+
+            // Add periods
+            if (task.periods) {
+                task.periods.forEach(period => {
+                    // Create bar for additional task period
+                    const bar = new Bar(this, task, period);
+                    this.layers.bar.appendChild(bar.group);
+                    this.bars.push(bar);
+                });
+            }
         });
     }
 
@@ -1526,8 +1634,8 @@ class Gantt {
                     if (!dependency) return;
                     const arrow = new Arrow(
                         this,
-                        this.bars[dependency._index], // from_task
-                        this.bars[task._index] // to_task
+                        this.bars[dependency._barIndex], // from_task
+                        this.bars[task._barIndex] // to_task
                     );
                     this.layers.arrow.appendChild(arrow.element);
                     return arrow;

@@ -2,17 +2,21 @@ import date_utils from './date_utils';
 import { $, createSVG, animateSVG } from './svg_utils';
 
 export default class Bar {
-    constructor(gantt, task) {
-        this.set_defaults(gantt, task);
+    constructor(gantt, task, period) {
+        if (!period) {
+            period = task;
+        }
+        this.set_defaults(gantt, task, period);
         this.prepare();
         this.draw();
         this.bind();
     }
 
-    set_defaults(gantt, task) {
+    set_defaults(gantt, task, period) {
         this.action_completed = false;
         this.gantt = gantt;
         this.task = task;
+        this.period = period;
     }
 
     prepare() {
@@ -27,7 +31,7 @@ export default class Bar {
         this.y = this.compute_y();
         this.corner_radius = this.gantt.options.bar_corner_radius;
         this.duration =
-            date_utils.diff(this.task._end, this.task._start, 'hour') /
+            date_utils.diff(this.period._end, this.period._start, 'hour') /
             this.gantt.options.step;
         this.width = this.gantt.options.column_width * this.duration;
         this.progress_width =
@@ -195,9 +199,13 @@ export default class Bar {
     show_popup() {
         if (this.gantt.bar_being_dragged) return;
 
-        const start_date = date_utils.format(this.task._start, 'MMM D', this.gantt.options.language);
+        const start_date = date_utils.format(
+            this.period._start,
+            'MMM D',
+            this.gantt.options.language
+        );
         const end_date = date_utils.format(
-            date_utils.add(this.task._end, -1, 'second'),
+            date_utils.add(this.period._end, -1, 'second'),
             'MMM D',
             this.gantt.options.language
         );
@@ -207,7 +215,7 @@ export default class Bar {
             target_element: this.$bar,
             title: this.task.name,
             subtitle: subtitle,
-            task: this.task,
+            task: this.task
         });
     }
 
@@ -241,14 +249,14 @@ export default class Bar {
         let changed = false;
         const { new_start_date, new_end_date } = this.compute_start_end_date();
 
-        if (Number(this.task._start) !== Number(new_start_date)) {
+        if (Number(this.period._start) !== Number(new_start_date)) {
             changed = true;
-            this.task._start = new_start_date;
+            this.period._start = new_start_date;
         }
 
-        if (Number(this.task._end) !== Number(new_end_date)) {
+        if (Number(this.period._end) !== Number(new_end_date)) {
             changed = true;
-            this.task._end = new_end_date;
+            this.period._end = new_end_date;
         }
 
         if (!changed) return;
@@ -297,7 +305,7 @@ export default class Bar {
 
     compute_x() {
         const { step, column_width } = this.gantt.options;
-        const task_start = this.task._start;
+        const task_start = this.period._start;
         const gantt_start = this.gantt.gantt_start;
 
         const diff = date_utils.diff(task_start, gantt_start, 'hour');

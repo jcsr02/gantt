@@ -91,44 +91,23 @@ export default class Gantt {
 
     setup_tasks(tasks) {
         // prepare tasks
+        const self = this;
+        let index = 0;
         this.tasks = tasks.map((task, i) => {
-            // convert to Date objects
-            task._start = date_utils.parse(task.start);
-            task._end = date_utils.parse(task.end);
-
-            // make task invalid if duration too large
-            if (date_utils.diff(task._end, task._start, 'year') > 10) {
-                task.end = null;
-            }
-
             // cache index
             task._index = i;
+            task._barIndex = index;
 
-            // invalid dates
-            if (!task.start && !task.end) {
-                const today = date_utils.today();
-                task._start = today;
-                task._end = date_utils.add(today, 2, 'day');
-            }
-
-            if (!task.start && task.end) {
-                task._start = date_utils.add(task._end, -2, 'day');
-            }
-
-            if (task.start && !task.end) {
-                task._end = date_utils.add(task._start, 2, 'day');
-            }
-
-            // if hours is not set, assume the last day is full day
-            // e.g: 2018-09-09 becomes 2018-09-09 23:59:59
-            const task_end_values = date_utils.get_date_values(task._end);
-            if (task_end_values.slice(3).every(d => d === 0)) {
-                task._end = date_utils.add(task._end, 24, 'hour');
-            }
-
-            // invalid flag
-            if (!task.start || !task.end) {
-                task.invalid = true;
+            // Build dates
+            self.setup_period(task);
+            // Setup periods
+            if (task.periods && Array.isArray(task.periods)) {
+                task.periods.forEach(period => {
+                    self.setup_period(period);
+                });
+                index += task.periods.length;
+            } else {
+                task.periods = null;
             }
 
             // dependencies
@@ -148,10 +127,50 @@ export default class Gantt {
                 task.id = generate_id(task);
             }
 
+            index++;
             return task;
         });
 
         this.setup_dependencies();
+    }
+
+    setup_period(o) {
+        // convert to Date objects
+        o._start = date_utils.parse(o.start);
+        o._end = date_utils.parse(o.end);
+
+        // make task invalid if duration too large
+        if (date_utils.diff(o._end, o._start, 'year') > 10) {
+            o.end = null;
+        }
+
+        // invalid dates
+        if (!o.start && !o.end) {
+            const today = date_utils.today();
+            o._start = today;
+            o._end = date_utils.add(today, 2, 'day');
+        }
+
+        if (!o.start && o.end) {
+            o._start = date_utils.add(o._end, -2, 'day');
+        }
+
+        if (o.start && !o.end) {
+            o._end = date_utils.add(o._start, 2, 'day');
+        }
+
+        // if hours is not set, assume the last day is full day
+        // e.g: 2018-09-09 becomes 2018-09-09 23:59:59
+        const task_end_values = date_utils.get_date_values(o._end);
+        if (task_end_values.slice(3).every(d => d === 0)) {
+            o._end = date_utils.add(o._end, 24, 'hour');
+        }
+
+        // invalid flag
+        if (!o.start || !o.end) {
+            o.invalid = true;
+        }
+        return o;
     }
 
     setup_dependencies() {
@@ -216,6 +235,18 @@ export default class Gantt {
             }
             if (!this.gantt_end || task._end > this.gantt_end) {
                 this.gantt_end = task._end;
+            }
+
+            if (task.periods) {
+                for (let period of task.periods) {
+                    // set global start and end date
+                    if (!this.gantt_start || period._start < this.gantt_start) {
+                        this.gantt_start = period._start;
+                    }
+                    if (!this.gantt_end || period._end > this.gantt_end) {
+                        this.gantt_end = period._end;
+                    }
+                }
             }
         }
 
@@ -561,10 +592,22 @@ export default class Gantt {
     }
 
     make_bars() {
-        this.bars = this.tasks.map(task => {
+        this.bars = [];
+        this.tasks.forEach(task => {
+            // Create main bar for task
             const bar = new Bar(this, task);
             this.layers.bar.appendChild(bar.group);
-            return bar;
+            this.bars.push(bar);
+
+            // Add periods
+            if (task.periods) {
+                task.periods.forEach(period => {
+                    // Create bar for additional task period
+                    const bar = new Bar(this, task, period);
+                    this.layers.bar.appendChild(bar.group);
+                    this.bars.push(bar);
+                });
+            }
         });
     }
 
@@ -578,8 +621,8 @@ export default class Gantt {
                     if (!dependency) return;
                     const arrow = new Arrow(
                         this,
-                        this.bars[dependency._index], // from_task
-                        this.bars[task._index] // to_task
+                        this.bars[dependency._barIndex], // from_task
+                        this.bars[task._barIndex] // to_task
                     );
                     this.layers.arrow.appendChild(arrow.element);
                     return arrow;
