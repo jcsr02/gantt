@@ -40,7 +40,7 @@ var tasks = [
     custom_class: 'bar-milestone' // optional
   },
   ...
-]
+];
 var gantt = new Gantt("#gantt", tasks);
 ```
 
@@ -60,6 +60,70 @@ var gantt = new Gantt("#gantt", tasks, {
     custom_popup_html: null
 });
 ```
+
+### Multiple periods per Task
+Although uncommon in GANTT charts you can specify an additional array for the `periods`
+key of a task to show additional bars in the task row of the generated chart
+
+The following example shows the task from above with three additional periods:
+
+```js
+var tasks = [
+  {
+    id: 'Task 1',
+    name: 'Redesign website',
+    start: '2016-12-28',
+    end: '2016-12-31',
+    progress: 20,
+    dependencies: 'Task 2, Task 3',
+    custom_class: 'bar-milestone', // optional
+    periods: [
+    	{
+    		start: '2017-01-05',
+    		end: '2017-01-07'
+    	},
+    	{
+    		start: '2017-01-09',
+    		end: '2017-01-14'
+    	},
+    	{
+    		start: '2017-01-15',
+    		end: '2017-01-17'
+    	}
+    ]
+  },
+  ...
+];
+var gantt = new Gantt("#gantt", tasks);
+```
+
+Supported formats for `start` and `end` keys of each object in `periods` are the same as for `start` and `end` on 
+the main task definition. Please be advised, that it is not supported to enable mouse events for tasks that have periods.
+You should disable user interaction for the task bar manipulation if you use the `period` feature.
+
+Due to the structure of the library even if you use periods you have to specify a `start` and `end` attribute for the 
+task. If e.g. you want bars inside the row of a task the first period is specified in `start` and `end` and the second 
+one in the `periods` attribute:
+
+```js
+var tasks = [
+  {
+    id: 'task1',
+    name: 'two time period task',
+    start: '2016-12-28',
+    end: '2016-12-31',
+    periods: [
+    	{
+    		start: '2017-01-05',
+    		end: '2017-01-07'
+    	}
+    ]
+  }
+];
+var gantt = new Gantt("#gantt", tasks);
+```
+
+### Contribute
 
 If you want to contribute:
 
