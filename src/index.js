@@ -84,7 +84,9 @@ export default class Gantt {
             date_format: 'YYYY-MM-DD',
             popup_trigger: 'click',
             custom_popup_html: null,
-            language: 'en'
+            language: 'en',
+            gantt_start: null,
+            gantt_end: null
         };
         this.options = Object.assign({}, default_options, options);
     }
@@ -227,45 +229,70 @@ export default class Gantt {
 
     setup_gantt_dates() {
         this.gantt_start = this.gantt_end = null;
+        // Check if start date is configured via options
+        console.log(this.options, this.tasks);
+        if (this.options.gantt_start !== null) {
+            this.gantt_start = date_utils.parse(this.options.gantt_start);
+        } else {
+            for (let task of this.tasks) {
+                if (!this.gantt_start || task._start < this.gantt_start) {
+                    this.gantt_start = task._start;
+                }
 
-        for (let task of this.tasks) {
-            // set global start and end date
-            if (!this.gantt_start || task._start < this.gantt_start) {
-                this.gantt_start = task._start;
-            }
-            if (!this.gantt_end || task._end > this.gantt_end) {
-                this.gantt_end = task._end;
-            }
-
-            if (task.periods) {
-                for (let period of task.periods) {
-                    // set global start and end date
-                    if (!this.gantt_start || period._start < this.gantt_start) {
-                        this.gantt_start = period._start;
-                    }
-                    if (!this.gantt_end || period._end > this.gantt_end) {
-                        this.gantt_end = period._end;
+                if (task.periods) {
+                    for (let period of task.periods) {
+                        // set global start date
+                        if (!this.gantt_start || period._start < this.gantt_start) {
+                            this.gantt_start = period._start;
+                        }
                     }
                 }
             }
+
+            this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
+            // add date padding on start
+            if (this.view_is(['Quarter Day', 'Half Day'])) {
+                this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
+            } else if (this.view_is('Month')) {
+                this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
+            } else if (this.view_is('Year')) {
+                this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
+            } else {
+                this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
+            }
         }
 
-        this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
-        this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
-
-        // add date padding on both sides
-        if (this.view_is(['Quarter Day', 'Half Day'])) {
-            this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
-            this.gantt_end = date_utils.add(this.gantt_end, 7, 'day');
-        } else if (this.view_is('Month')) {
-            this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
-            this.gantt_end = date_utils.add(this.gantt_end, 1, 'year');
-        } else if (this.view_is('Year')) {
-            this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
-            this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
+        // Check if end date is configured via options
+        if (this.options.gantt_end !== null) {
+            this.gantt_end = date_utils.parse(this.options.gantt_end);
         } else {
-            this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
-            this.gantt_end = date_utils.add(this.gantt_end, 1, 'month');
+            for (let task of this.tasks) {
+                if (!this.gantt_end || task._end < this.gantt_end) {
+                    this.gantt_end = task._end;
+                }
+
+                if (task.periods) {
+                    for (let period of task.periods) {
+                        // set global end date
+                        if (!this.gantt_end || period._end < this.gantt_end) {
+                            this.gantt_end = period._end;
+                        }
+                    }
+                }
+            }
+
+            this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
+
+            // add date padding on end sides
+            if (this.view_is(['Quarter Day', 'Half Day'])) {
+                this.gantt_end = date_utils.add(this.gantt_end, 7, 'day');
+            } else if (this.view_is('Month')) {
+                this.gantt_end = date_utils.add(this.gantt_end, 1, 'year');
+            } else if (this.view_is('Year')) {
+                this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
+            } else {
+                this.gantt_end = date_utils.add(this.gantt_end, 1, 'month');
+            }
         }
     }
 
@@ -289,7 +316,9 @@ export default class Gantt {
                     );
                 }
             }
-            this.dates.push(cur_date);
+            if (cur_date < this.gantt_end) {
+                this.dates.push(cur_date);
+            }
         }
     }
 
