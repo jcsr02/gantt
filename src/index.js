@@ -230,23 +230,26 @@ export default class Gantt {
     setup_gantt_dates() {
         this.gantt_start = this.gantt_end = null;
         // Check if start date is configured via options
-        console.log(this.options, this.tasks);
         if (this.options.gantt_start !== null) {
             this.gantt_start = date_utils.parse(this.options.gantt_start);
         } else {
-            for (let task of this.tasks) {
-                if (!this.gantt_start || task._start < this.gantt_start) {
-                    this.gantt_start = task._start;
-                }
+            if (Array.isArray(this.tasks) && this.tasks.length > 0) {
+                for (let task of this.tasks) {
+                    if (!this.gantt_start || task._start < this.gantt_start) {
+                        this.gantt_start = task._start;
+                    }
 
-                if (task.periods) {
-                    for (let period of task.periods) {
-                        // set global start date
-                        if (!this.gantt_start || period._start < this.gantt_start) {
-                            this.gantt_start = period._start;
+                    if (task.periods) {
+                        for (let period of task.periods) {
+                            // set global start date
+                            if (!this.gantt_start || period._start < this.gantt_start) {
+                                this.gantt_start = period._start;
+                            }
                         }
                     }
                 }
+            } else {
+                this.gantt_start = date_utils.today();
             }
 
             this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
@@ -266,19 +269,23 @@ export default class Gantt {
         if (this.options.gantt_end !== null) {
             this.gantt_end = date_utils.parse(this.options.gantt_end);
         } else {
-            for (let task of this.tasks) {
-                if (!this.gantt_end || task._end < this.gantt_end) {
-                    this.gantt_end = task._end;
-                }
+            if (Array.isArray(this.tasks) && this.tasks.length > 0) {
+                for (let task of this.tasks) {
+                    if (!this.gantt_end || task._end < this.gantt_end) {
+                        this.gantt_end = task._end;
+                    }
 
-                if (task.periods) {
-                    for (let period of task.periods) {
-                        // set global end date
-                        if (!this.gantt_end || period._end < this.gantt_end) {
-                            this.gantt_end = period._end;
+                    if (task.periods) {
+                        for (let period of task.periods) {
+                            // set global end date
+                            if (!this.gantt_end || period._end < this.gantt_end) {
+                                this.gantt_end = period._end;
+                            }
                         }
                     }
                 }
+            } else {
+                this.gantt_end = date_utils.add(this.gantt_start, 1, 'month');
             }
 
             this.gantt_end = date_utils.start_of(this.gantt_end, 'day');

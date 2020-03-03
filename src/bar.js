@@ -30,11 +30,6 @@ export default class Bar {
         this.x = this.compute_x();
         this.y = this.compute_y();
         this.corner_radius = this.gantt.options.bar_corner_radius;
-        console.log(this.task);
-        console.log(this.period._start, this.gantt.gantt_start);
-        console.log(this.period._end, this.gantt.gantt_end);
-        console.log(Math.max(this.period._start, this.gantt.gantt_start),
-            Math.min(this.period._end, this.gantt.gantt_end));
         this.duration =
             date_utils.diff(
                 Math.min(this.period._end, this.gantt.gantt_end),
@@ -42,7 +37,6 @@ export default class Bar {
                 'hour'
             ) / this.gantt.options.step;
         this.width = this.gantt.options.column_width * this.duration;
-        console.log(this.width, this.x, this.y);
         this.progress_width =
             this.gantt.options.column_width *
                 this.duration *
