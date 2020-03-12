@@ -476,19 +476,16 @@ class Bar {
         this.x = this.compute_x();
         this.y = this.compute_y();
         this.corner_radius = this.gantt.options.bar_corner_radius;
-        console.log(this.task);
-        console.log(this.period._start, this.gantt.gantt_start);
-        console.log(this.period._end, this.gantt.gantt_end);
-        console.log(Math.max(this.period._start, this.gantt.gantt_start),
-            Math.min(this.period._end, this.gantt.gantt_end));
         this.duration =
             date_utils.diff(
                 Math.min(this.period._end, this.gantt.gantt_end),
                 Math.max(this.period._start, this.gantt.gantt_start),
                 'hour'
             ) / this.gantt.options.step;
-        this.width = this.gantt.options.column_width * this.duration;
-        console.log(this.width, this.x, this.y);
+        this.width = Math.max(
+            this.gantt.options.column_width * this.duration,
+            0
+        );
         this.progress_width =
             this.gantt.options.column_width *
                 this.duration *
@@ -526,6 +523,11 @@ class Bar {
     }
 
     draw() {
+        // Do not draw hidden bars
+        if (this.width <= 0) {
+            return;
+        }
+
         this.draw_bar();
         this.draw_progress_bar();
         this.draw_label();
@@ -1114,7 +1116,8 @@ class Gantt {
             custom_popup_html: null,
             language: 'en',
             gantt_start: null,
-            gantt_end: null
+            gantt_end: null,
+            scroll_start: null
         };
         this.options = Object.assign({}, default_options, options);
     }
@@ -1258,23 +1261,26 @@ class Gantt {
     setup_gantt_dates() {
         this.gantt_start = this.gantt_end = null;
         // Check if start date is configured via options
-        console.log(this.options, this.tasks);
         if (this.options.gantt_start !== null) {
             this.gantt_start = date_utils.parse(this.options.gantt_start);
         } else {
-            for (let task of this.tasks) {
-                if (!this.gantt_start || task._start < this.gantt_start) {
-                    this.gantt_start = task._start;
-                }
+            if (Array.isArray(this.tasks) && this.tasks.length > 0) {
+                for (let task of this.tasks) {
+                    if (!this.gantt_start || task._start < this.gantt_start) {
+                        this.gantt_start = task._start;
+                    }
 
-                if (task.periods) {
-                    for (let period of task.periods) {
-                        // set global start date
-                        if (!this.gantt_start || period._start < this.gantt_start) {
-                            this.gantt_start = period._start;
+                    if (task.periods) {
+                        for (let period of task.periods) {
+                            // set global start date
+                            if (!this.gantt_start || period._start < this.gantt_start) {
+                                this.gantt_start = period._start;
+                            }
                         }
                     }
                 }
+            } else {
+                this.gantt_start = date_utils.today();
             }
 
             this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
@@ -1294,19 +1300,23 @@ class Gantt {
         if (this.options.gantt_end !== null) {
             this.gantt_end = date_utils.parse(this.options.gantt_end);
         } else {
-            for (let task of this.tasks) {
-                if (!this.gantt_end || task._end < this.gantt_end) {
-                    this.gantt_end = task._end;
-                }
+            if (Array.isArray(this.tasks) && this.tasks.length > 0) {
+                for (let task of this.tasks) {
+                    if (!this.gantt_end || task._end > this.gantt_end) {
+                        this.gantt_end = task._end;
+                    }
 
-                if (task.periods) {
-                    for (let period of task.periods) {
-                        // set global end date
-                        if (!this.gantt_end || period._end < this.gantt_end) {
-                            this.gantt_end = period._end;
+                    if (task.periods) {
+                        for (let period of task.periods) {
+                            // set global end date
+                            if (!this.gantt_end || period._end > this.gantt_end) {
+                                this.gantt_end = period._end;
+                            }
                         }
                     }
                 }
+            } else {
+                this.gantt_end = date_utils.add(this.gantt_start, 1, 'month');
             }
 
             this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
@@ -1463,7 +1473,8 @@ class Gantt {
             this.tasks.length;
 
         for (let date of this.dates) {
-            let tick_class = 'tick';
+            let date_class = `date-${date.getFullYear()}-${date.getMonth()}-${date.getDay()}`;
+            let tick_class = `tick ${date_class}`;
             // thick tick for monday
             if (this.view_is('Day') && date.getDate() === 1) {
                 tick_class += ' thick';
@@ -1714,8 +1725,13 @@ class Gantt {
         const parent_element = this.$svg.parentElement;
         if (!parent_element) return;
 
+        let scroll_start = this.get_oldest_starting_date();
+        if (this.options.scroll_start !== null) {
+            scroll_start = date_utils.parse(this.options.scroll_start);
+        }
+
         const hours_before_first_task = date_utils.diff(
-            this.get_oldest_starting_date(),
+            scroll_start,
             this.gantt_start,
             'hour'
         );

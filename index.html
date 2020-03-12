@@ -28,78 +28,46 @@
 	<script>
 		var tasks = [
 			{
-				start: '2018-10-01',
-				end: '2018-10-08',
-				name: 'Redesign website',
+				start: '2019-12-11 17:10:53',
+				end: '2020-01-03 10:00:00',
+				name: 'Set 1',
 				id: "Task 0",
-				progress: 20
+				periods: [
+					{
+						start: '2020-01-11 17:00:00',
+						end: '2020-03-21 15:00:00'
+					},
+					{
+						start: '2020-03-29 17:00:00',
+						end: '2020-05-09 11:00:00'
+					},
+					{
+						start: '2020-05-13 17:00:00',
+						end: '2020-06-25 17:10:53'
+					}
+				]
 			},
 			{
-				start: '2018-10-03',
-				end: '2018-10-06',
-				name: 'Write new content',
+				start: '2019-12-11 17:10:53',
+				end: '2020-06-25 17:10:53',
+				name: 'Set 2',
 				id: "Task 1",
-				progress: 5,
-				dependencies: 'Task 0'
-			},
-			{
-				start: '2018-10-04',
-				end: '2018-10-08',
-				name: 'Apply new styles',
-				id: "Task 2",
-				progress: 10,
-				dependencies: 'Task 1'
-			},
-			{
-				start: '2018-10-08',
-				end: '2018-10-09',
-				name: 'Review',
-				id: "Task 3",
-				progress: 5,
-				dependencies: 'Task 2'
-			},
-			{
-				start: '2018-10-08',
-				end: '2018-10-10',
-				name: 'Deploy',
-				id: "Task 4",
-				progress: 0,
-				dependencies: 'Task 2'
-			},
-			{
-				start: '2018-10-11',
-				end: '2018-10-11',
-				name: 'Go Live!',
-				id: "Task 5",
-				progress: 0,
-				dependencies: 'Task 4',
-				custom_class: 'bar-milestone'
-			},
-			{
-				start: '2014-01-05',
-				end: '2019-10-12',
-				name: 'Long term task',
-				id: "Task 6",
-				progress: 0
 			}
-		]
+		];
 		var gantt_chart = new Gantt(".gantt-target", tasks, {
-			on_click: function (task) {
-				console.log(task);
-			},
-			on_date_change: function(task, start, end) {
-				console.log(task, start, end);
-			},
-			on_progress_change: function(task, progress) {
-				console.log(task, progress);
-			},
-			on_view_change: function(mode) {
-				console.log(mode);
-			},
+			header_height: 50,
+			column_width: 30,
+			step: 24,
+			view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
+			bar_height: 25,
+			bar_corner_radius: 3,
+			arrow_curve: 5,
+			padding: 18,
 			view_mode: 'Day',
-			language: 'en',
-			gantt_start: '2018-05-01',
-			gantt_end: '2019-01-02'
+			date_format: 'YYYY-MM-DD',
+			custom_popup_html: null,
+			gantt_end: '2020-04-01',
+			scroll_start: '2020-01-11'
 		});
 		console.log(gantt_chart);
 	</script>

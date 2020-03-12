@@ -36,7 +36,10 @@ export default class Bar {
                 Math.max(this.period._start, this.gantt.gantt_start),
                 'hour'
             ) / this.gantt.options.step;
-        this.width = this.gantt.options.column_width * this.duration;
+        this.width = Math.max(
+            this.gantt.options.column_width * this.duration,
+            0
+        );
         this.progress_width =
             this.gantt.options.column_width *
                 this.duration *
@@ -74,6 +77,11 @@ export default class Bar {
     }
 
     draw() {
+        // Do not draw hidden bars
+        if (this.width <= 0) {
+            return;
+        }
+
         this.draw_bar();
         this.draw_progress_bar();
         this.draw_label();

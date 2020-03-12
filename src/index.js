@@ -86,7 +86,8 @@ export default class Gantt {
             custom_popup_html: null,
             language: 'en',
             gantt_start: null,
-            gantt_end: null
+            gantt_end: null,
+            scroll_start: null
         };
         this.options = Object.assign({}, default_options, options);
     }
@@ -271,14 +272,14 @@ export default class Gantt {
         } else {
             if (Array.isArray(this.tasks) && this.tasks.length > 0) {
                 for (let task of this.tasks) {
-                    if (!this.gantt_end || task._end < this.gantt_end) {
+                    if (!this.gantt_end || task._end > this.gantt_end) {
                         this.gantt_end = task._end;
                     }
 
                     if (task.periods) {
                         for (let period of task.periods) {
                             // set global end date
-                            if (!this.gantt_end || period._end < this.gantt_end) {
+                            if (!this.gantt_end || period._end > this.gantt_end) {
                                 this.gantt_end = period._end;
                             }
                         }
@@ -442,7 +443,8 @@ export default class Gantt {
             this.tasks.length;
 
         for (let date of this.dates) {
-            let tick_class = 'tick';
+            let date_class = `date-${date.getFullYear()}-${date.getMonth()}-${date.getDay()}`;
+            let tick_class = `tick ${date_class}`;
             // thick tick for monday
             if (this.view_is('Day') && date.getDate() === 1) {
                 tick_class += ' thick';
@@ -693,8 +695,13 @@ export default class Gantt {
         const parent_element = this.$svg.parentElement;
         if (!parent_element) return;
 
+        let scroll_start = this.get_oldest_starting_date();
+        if (this.options.scroll_start !== null) {
+            scroll_start = date_utils.parse(this.options.scroll_start);
+        }
+
         const hours_before_first_task = date_utils.diff(
-            this.get_oldest_starting_date(),
+            scroll_start,
             this.gantt_start,
             'hour'
         );
