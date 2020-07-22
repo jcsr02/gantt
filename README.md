@@ -123,6 +123,61 @@ var tasks = [
 var gantt = new Gantt("#gantt", tasks);
 ```
 
+If a period is clicked, the period definition is passed to the `on_click` handler as second parameter after the task.
+
+### Checkpoints
+
+If you want to display a diamond shaped item for a task to indicate a checkpoint you can specify a period with the
+key `type` set to checkpoint. This will render a diamond shape at the specified `start` date.
+```js
+var tasks = [
+  {
+     id: 'task1',
+     name: 'My checkpoint task',
+     start: '2016-12-28',
+     end: '2016-12-31',
+     periods: [
+     	{
+            type: 'checkpoint',
+            start: '2017-01-05'
+     	}
+     ]
+   }
+];
+```
+
+### Custom CSS class and fill color
+
+If you want to specify custom classes for tasks and/or periods you may do so with the `custom_class` or `fill` property.
+Task classes specifed via `custom_class` on task level are inherited to its periods. This is also true for the `fill`
+property. However, if a period defines a `fill` property it overrides the one specified on task level, whereas a
+`custom_class` on period level is simply added alongside a `custom_class`on task level. 
+```js
+var tasks = [
+  {
+     id: 'task1',
+     name: 'My checkpoint task',
+     start: '2016-12-28',
+     end: '2016-12-31',
+     custom_class: 'my-task-css-class',
+     periods: [
+     	{
+            start: '2017-01-05',
+            end: '2017-01-07'
+     	},
+     	{
+            start: '2017-01-08',
+            end: '2017-01-09',
+            custom_class: 'my-period-css-class',
+            fill: '#ff0000'
+     	}
+     ]
+   }
+];
+
+var gantt = new Gantt("#gantt", tasks);
+```
+
 ### Contribute
 
 If you want to contribute:

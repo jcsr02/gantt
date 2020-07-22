@@ -1,6 +1,7 @@
 import date_utils from './date_utils';
 import { $, createSVG } from './svg_utils';
 import Bar from './bar';
+import Checkpoint from './checkpoint';
 import Arrow from './arrow';
 import Popup from './popup';
 
@@ -640,10 +641,18 @@ export default class Gantt {
             // Add periods
             if (task.periods) {
                 task.periods.forEach(period => {
-                    // Create bar for additional task period
-                    const bar = new Bar(this, task, period);
-                    this.layers.bar.appendChild(bar.group);
-                    this.bars.push(bar);
+                    // Check what type of period this is
+                    if (period.type === 'checkpoint') {
+                        // Create checkpoint for this task period
+                        const checkpoint = new Checkpoint(this, task, period);
+                        this.layers.bar.appendChild(checkpoint.group);
+                    }
+                    else {
+                        // Create bar for additional task period
+                        const bar = new Bar(this, task, period);
+                        this.layers.bar.appendChild(bar.group);
+                        this.bars.push(bar);
+                    }
                 });
             }
         });

@@ -44,8 +44,17 @@ export default class Bar {
             this.gantt.options.column_width *
                 this.duration *
                 (this.task.progress / 100) || 0;
+
+        const group_classes = ['bar-wrapper'];
+        if (this.period && this.period.custom_class) {
+            group_classes.push(this.period.custom_class);
+        }
+        if (this.task.custom_class) {
+            group_classes.push(this.task.custom_class);
+        }
+
         this.group = createSVG('g', {
-            class: 'bar-wrapper ' + (this.task.custom_class || ''),
+            class: group_classes.join(' '),
             'data-id': this.task.id
         });
         this.bar_group = createSVG('g', {
@@ -89,7 +98,7 @@ export default class Bar {
     }
 
     draw_bar() {
-        this.$bar = createSVG('rect', {
+        const attrs = {
             x: this.x,
             y: this.y,
             width: this.width,
@@ -98,7 +107,15 @@ export default class Bar {
             ry: this.corner_radius,
             class: 'bar',
             append_to: this.bar_group
-        });
+        };
+
+        if (this.period && this.period.fill) {
+            attrs['style'] = 'fill: ' + this.period.fill;
+        } else if (this.task.fill) {
+            attrs['style'] = 'fill: ' + this.task.fill;
+        }
+
+        this.$bar = createSVG('rect', attrs);
 
         animateSVG(this.$bar, 'width', 0, this.width);
 
@@ -197,7 +214,7 @@ export default class Bar {
             }
 
             if (e.type === 'click') {
-                this.gantt.trigger_event('click', [this.task]);
+                this.gantt.trigger_event('click', [this.task, this.period]);
             }
 
             this.gantt.unselect_all();

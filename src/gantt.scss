@@ -117,6 +117,10 @@ $handle-color: #ddd !default;
 		}
 	}
 
+	.checkpoint {
+		cursor: pointer;
+	}
+
 	.lower-text, .upper-text {
 		font-size: 12px;
 		text-anchor: middle;
