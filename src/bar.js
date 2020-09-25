@@ -25,21 +25,36 @@ export default class Bar {
     }
 
     prepare_values() {
-        this.invalid = this.task.invalid;
+        this.text_align = this.gantt.options.bar_text_align;
+        if (this.task.text_align) {
+            this.text_align = this.task.text_align;
+        }
+
+        this.invalid = this.task.invalid && !this.task.header === true;
         this.height = this.gantt.options.bar_height;
         this.x = this.compute_x();
         this.y = this.compute_y();
         this.corner_radius = this.gantt.options.bar_corner_radius;
-        this.duration =
-            date_utils.diff(
-                Math.min(this.period._end, this.gantt.gantt_end),
-                Math.max(this.period._start, this.gantt.gantt_start),
-                'hour'
-            ) / this.gantt.options.step;
+        if (this.task.header === true) {
+            this.duration =
+                date_utils.diff(
+                    this.gantt.gantt_end,
+                    this.gantt.gantt_start,
+                    'hour'
+                ) / this.gantt.options.step;
+        } else {
+            this.duration =
+                date_utils.diff(
+                    Math.min(this.period._end, this.gantt.gantt_end),
+                    Math.max(this.period._start, this.gantt.gantt_start),
+                    'hour'
+                ) / this.gantt.options.step;
+        }
         this.width = Math.max(
             this.gantt.options.column_width * this.duration,
             0
         );
+
         this.progress_width =
             this.gantt.options.column_width *
                 this.duration *
@@ -140,12 +155,28 @@ export default class Bar {
         animateSVG(this.$bar_progress, 'width', 0, this.progress_width);
     }
 
+    get_label_x(scroll_offset) {
+        const bar = this.$bar;
+        let x = bar.getX() + bar.getWidth() / 2;
+        if (this.text_align === 'left') {
+            x = bar.getX() + this.corner_radius;
+        } else if (this.text_align === 'right') {
+            x = bar.getX() + bar.getWidth() - this.corner_radius;
+        }
+
+        if (scroll_offset) {
+            x += scroll_offset;
+        }
+
+        return x;
+    }
+
     draw_label() {
         createSVG('text', {
-            x: this.x + this.width / 2,
+            x: this.get_label_x(),
             y: this.y + this.height / 2,
             innerHTML: this.task.name,
-            class: 'bar-label',
+            class: 'bar-label bar-label-' + this.text_align,
             append_to: this.bar_group
         });
         // labels get BBox in the next tick
@@ -153,7 +184,7 @@ export default class Bar {
     }
 
     draw_resize_handles() {
-        if (this.invalid) return;
+        if (this.invalid || this.period.disabled === true) return;
 
         const bar = this.$bar;
         const handle_width = 8;
@@ -202,7 +233,7 @@ export default class Bar {
     }
 
     bind() {
-        if (this.invalid) return;
+        if (this.invalid || this.period.disabled === true) return;
         this.setup_click_event();
     }
 
@@ -273,6 +304,15 @@ export default class Bar {
         this.update_arrow_position();
     }
 
+    update_header_position(scrolling_container) {
+        if (this.task.header === true) {
+            const scroll_x = scrolling_container.scrollLeft;
+            const label = this.group.querySelector('.bar-label');
+
+            label.setAttribute('x', this.get_label_x(scroll_x));
+        }
+    }
+
     date_changed() {
         let changed = false;
         const { new_start_date, new_end_date } = this.compute_start_end_date();
@@ -335,6 +375,10 @@ export default class Bar {
         const { step, column_width } = this.gantt.options;
         const task_start = this.period._start;
         const gantt_start = this.gantt.gantt_start;
+
+        if (this.task.header === true) {
+            return 0;
+        }
 
         const diff = Math.max(
             0,
@@ -410,6 +454,10 @@ export default class Bar {
     }
 
     update_label_position() {
+        if (this.task.header === true) {
+            return;
+        }
+
         const bar = this.$bar,
             label = this.group.querySelector('.bar-label');
 
@@ -418,7 +466,7 @@ export default class Bar {
             label.setAttribute('x', bar.getX() + bar.getWidth() + 5);
         } else {
             label.classList.remove('big');
-            label.setAttribute('x', bar.getX() + bar.getWidth() / 2);
+            label.setAttribute('x', this.get_label_x());
         }
     }
 

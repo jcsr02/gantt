@@ -53,7 +53,7 @@ export default class Gantt {
         // wrapper element
         this.$container = document.createElement('div');
         this.$container.classList.add('gantt-container');
-
+        this.$container.onscroll = e => this.refresh_headers(e);
         const parent_element = this.$svg.parentElement;
         parent_element.appendChild(this.$container);
         this.$container.appendChild(this.$svg);
@@ -79,6 +79,7 @@ export default class Gantt {
             ],
             bar_height: 20,
             bar_corner_radius: 3,
+            bar_text_align: 'center',
             arrow_curve: 5,
             padding: 18,
             view_mode: 'Day',
@@ -88,7 +89,8 @@ export default class Gantt {
             language: 'en',
             gantt_start: null,
             gantt_end: null,
-            scroll_start: null
+            scroll_start: null,
+            highlight_weekend: false
         };
         this.options = Object.assign({}, default_options, options);
     }
@@ -192,6 +194,12 @@ export default class Gantt {
         this.change_view_mode();
     }
 
+    refresh_headers(event) {
+        this.bars.forEach(bar => {
+            bar.update_header_position(event.target);
+        });
+    }
+
     change_view_mode(mode = this.options.view_mode) {
         this.update_view_scale(mode);
         this.setup_dates();
@@ -244,7 +252,10 @@ export default class Gantt {
                     if (task.periods) {
                         for (let period of task.periods) {
                             // set global start date
-                            if (!this.gantt_start || period._start < this.gantt_start) {
+                            if (
+                                !this.gantt_start ||
+                                period._start < this.gantt_start
+                            ) {
                                 this.gantt_start = period._start;
                             }
                         }
@@ -259,11 +270,18 @@ export default class Gantt {
             if (this.view_is(['Quarter Day', 'Half Day'])) {
                 this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
             } else if (this.view_is('Month')) {
-                this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
+                this.gantt_start = date_utils.start_of(
+                    this.gantt_start,
+                    'year'
+                );
             } else if (this.view_is('Year')) {
                 this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
             } else {
-                this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
+                this.gantt_start = date_utils.add(
+                    this.gantt_start,
+                    -1,
+                    'month'
+                );
             }
         }
 
@@ -280,7 +298,10 @@ export default class Gantt {
                     if (task.periods) {
                         for (let period of task.periods) {
                             // set global end date
-                            if (!this.gantt_end || period._end > this.gantt_end) {
+                            if (
+                                !this.gantt_end ||
+                                period._end > this.gantt_end
+                            ) {
                                 this.gantt_end = period._end;
                             }
                         }
@@ -483,28 +504,45 @@ export default class Gantt {
     make_grid_highlights() {
         // highlight today's date
         if (this.view_is('Day')) {
-            const x =
-                date_utils.diff(date_utils.today(), this.gantt_start, 'hour') /
-                this.options.step *
-                this.options.column_width;
-            const y = 0;
+            this.highlight_day(date_utils.today(), 'today-highlight');
 
-            const width = this.options.column_width;
-            const height =
-                (this.options.bar_height + this.options.padding) *
-                    this.tasks.length +
-                this.options.header_height +
-                this.options.padding / 2;
+            if (this.options.highlight_weekend) {
+                let d = this.gantt_start;
+                while (d < this.gantt_end) {
+                    console.log(d);
+                    if (d.getDay() === 6 || d.getDay() === 0) {
+                        this.highlight_day(d, 'weekend-highlight');
+                    }
 
-            createSVG('rect', {
-                x,
-                y,
-                width,
-                height,
-                class: 'today-highlight',
-                append_to: this.layers.grid
-            });
+                    d = date_utils.add(d, 1, 'day');
+                }
+            }
         }
+    }
+
+    highlight_day(day, css_class) {
+        const x =
+            date_utils.diff(day, this.gantt_start, 'hour') /
+            this.options.step *
+            this.options.column_width;
+        const y = 0;
+
+        const width = this.options.column_width;
+        const height =
+            (this.options.bar_height + this.options.padding) *
+                this.tasks.length +
+            this.options.header_height +
+            this.options.padding / 2;
+
+        console.log(x, y, width, height);
+        createSVG('rect', {
+            x,
+            y,
+            width,
+            height,
+            class: css_class,
+            append_to: this.layers.grid
+        });
     }
 
     make_dates() {
@@ -538,12 +576,11 @@ export default class Gantt {
 
     get_dates_to_draw() {
         let last_date = null;
-        const dates = this.dates.map((date, i) => {
+        return this.dates.map((date, i) => {
             const d = this.get_date_info(date, last_date, i);
             last_date = date;
             return d;
         });
-        return dates;
     }
 
     get_date_info(date, last_date, i) {
@@ -646,8 +683,7 @@ export default class Gantt {
                         // Create checkpoint for this task period
                         const checkpoint = new Checkpoint(this, task, period);
                         this.layers.bar.appendChild(checkpoint.group);
-                    }
-                    else {
+                    } else {
                         // Create bar for additional task period
                         const bar = new Bar(this, task, period);
                         this.layers.bar.appendChild(bar.group);
@@ -715,13 +751,11 @@ export default class Gantt {
             'hour'
         );
 
-        const scroll_pos =
+        parent_element.scrollLeft =
             hours_before_first_task /
                 this.options.step *
                 this.options.column_width -
             this.options.column_width;
-
-        parent_element.scrollLeft = scroll_pos;
     }
 
     bind_grid_click() {
@@ -787,7 +821,6 @@ export default class Gantt {
         $.on(this.$svg, 'mousemove', e => {
             if (!action_in_progress()) return;
             const dx = e.offsetX - x_on_start;
-            const dy = e.offsetY - y_on_start;
 
             bars.forEach(bar => {
                 const $bar = bar.$bar;
@@ -816,7 +849,7 @@ export default class Gantt {
             });
         });
 
-        document.addEventListener('mouseup', e => {
+        document.addEventListener('mouseup', () => {
             if (is_dragging || is_resizing_left || is_resizing_right) {
                 bars.forEach(bar => bar.group.classList.remove('active'));
             }
@@ -826,7 +859,7 @@ export default class Gantt {
             is_resizing_right = false;
         });
 
-        $.on(this.$svg, 'mouseup', e => {
+        $.on(this.$svg, 'mouseup', () => {
             this.bar_being_dragged = null;
             bars.forEach(bar => {
                 const $bar = bar.$bar;
@@ -868,7 +901,6 @@ export default class Gantt {
         $.on(this.$svg, 'mousemove', e => {
             if (!is_resizing) return;
             let dx = e.offsetX - x_on_start;
-            let dy = e.offsetY - y_on_start;
 
             if (dx > $bar_progress.max_dx) {
                 dx = $bar_progress.max_dx;
