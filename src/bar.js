@@ -113,6 +113,13 @@ export default class Bar {
     }
 
     draw_bar() {
+        let css_class = 'bar';
+        if (this.period && this.period.css_class) {
+            css_class += ' ' + this.period.css_class;
+        } else if (this.task.css_class) {
+            css_class += ' ' + this.task.css_class;
+        }
+
         const attrs = {
             x: this.x,
             y: this.y,
@@ -120,7 +127,7 @@ export default class Bar {
             height: this.height,
             rx: this.corner_radius,
             ry: this.corner_radius,
-            class: 'bar',
+            class: css_class,
             append_to: this.bar_group
         };
 
@@ -159,9 +166,9 @@ export default class Bar {
         const bar = this.$bar;
         let x = bar.getX() + bar.getWidth() / 2;
         if (this.text_align === 'left') {
-            x = bar.getX() + this.corner_radius;
+            x = bar.getX() + this.gantt.options.padding;
         } else if (this.text_align === 'right') {
-            x = bar.getX() + bar.getWidth() - this.corner_radius;
+            x = bar.getX() + bar.getWidth() - this.gantt.options.padding;
         }
 
         if (scroll_offset) {
@@ -175,7 +182,7 @@ export default class Bar {
         createSVG('text', {
             x: this.get_label_x(),
             y: this.y + this.height / 2,
-            innerHTML: this.task.name,
+            innerHTML: this.period.name || this.task.name,
             class: 'bar-label bar-label-' + this.text_align,
             append_to: this.bar_group
         });
