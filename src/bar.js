@@ -139,7 +139,7 @@ export default class Bar {
 
         this.$bar = createSVG('rect', attrs);
 
-        animateSVG(this.$bar, 'width', 0, this.width);
+        //animateSVG(this.$bar, 'width', 0, this.width);
 
         if (this.invalid) {
             this.$bar.classList.add('bar-invalid');
@@ -159,7 +159,7 @@ export default class Bar {
             append_to: this.bar_group
         });
 
-        animateSVG(this.$bar_progress, 'width', 0, this.progress_width);
+        //animateSVG(this.$bar_progress, 'width', 0, this.progress_width);
     }
 
     get_label_x(scroll_offset) {
@@ -453,10 +453,11 @@ export default class Bar {
     }
 
     update_progressbar_position() {
+        const taskProgress = this.task.progress ? this.task.progress : 0;
         this.$bar_progress.setAttribute('x', this.$bar.getX());
         this.$bar_progress.setAttribute(
             'width',
-            this.$bar.getWidth() * (this.task.progress / 100)
+            this.$bar.getWidth() * (taskProgress / 100)
         );
     }
 

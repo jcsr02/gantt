@@ -599,7 +599,7 @@ class Bar {
 
         this.$bar = createSVG('rect', attrs);
 
-        animateSVG(this.$bar, 'width', 0, this.width);
+        //animateSVG(this.$bar, 'width', 0, this.width);
 
         if (this.invalid) {
             this.$bar.classList.add('bar-invalid');
@@ -619,7 +619,7 @@ class Bar {
             append_to: this.bar_group
         });
 
-        animateSVG(this.$bar_progress, 'width', 0, this.progress_width);
+        //animateSVG(this.$bar_progress, 'width', 0, this.progress_width);
     }
 
     get_label_x(scroll_offset) {
@@ -913,10 +913,11 @@ class Bar {
     }
 
     update_progressbar_position() {
+        const taskProgress = this.task.progress ? this.task.progress : 0;
         this.$bar_progress.setAttribute('x', this.$bar.getX());
         this.$bar_progress.setAttribute(
             'width',
-            this.$bar.getWidth() * (this.task.progress / 100)
+            this.$bar.getWidth() * (taskProgress / 100)
         );
     }
 
@@ -1727,7 +1728,6 @@ class Gantt {
             if (this.options.highlight_weekend) {
                 let d = this.gantt_start;
                 while (d < this.gantt_end) {
-                    console.log(d);
                     if (d.getDay() === 6 || d.getDay() === 0) {
                         this.highlight_day(d, 'weekend-highlight');
                     }
@@ -1752,7 +1752,6 @@ class Gantt {
             this.options.header_height +
             this.options.padding / 2;
 
-        console.log(x, y, width, height);
         createSVG('rect', {
             x,
             y,
@@ -2004,7 +2003,6 @@ class Gantt {
 
         $.on(this.$svg, 'mousedown', '.bar-wrapper, .handle', (e, element) => {
             const bar_wrapper = $.closest('.bar-wrapper', element);
-
             if (element.classList.contains('left')) {
                 is_resizing_left = true;
             } else if (element.classList.contains('right')) {
@@ -2015,8 +2013,10 @@ class Gantt {
 
             bar_wrapper.classList.add('active');
 
-            x_on_start = e.offsetX;
-            y_on_start = e.offsetY;
+            x_on_start = e.layerX;
+            y_on_start = e.layerY;
+            console.log('Down at', x_on_start, y_on_start);
+            console.log(e);
 
             parent_bar_id = bar_wrapper.getAttribute('data-id');
             const ids = [
@@ -2038,8 +2038,7 @@ class Gantt {
 
         $.on(this.$svg, 'mousemove', e => {
             if (!action_in_progress()) return;
-            const dx = e.offsetX - x_on_start;
-
+            const dx = e.layerX - x_on_start;
             bars.forEach(bar => {
                 const $bar = bar.$bar;
                 $bar.finaldx = this.get_snap_position(dx);
