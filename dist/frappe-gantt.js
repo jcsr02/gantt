@@ -1900,6 +1900,7 @@ class Gantt {
                         // Create checkpoint for this task period
                         const checkpoint = new Checkpoint(this, task, period);
                         this.layers.bar.appendChild(checkpoint.group);
+                        this.bars.push(bar);
                     } else {
                         // Create bar for additional task period
                         const bar = new Bar(this, task, period);
