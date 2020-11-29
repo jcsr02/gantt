@@ -17,7 +17,7 @@
 
 ### Install
 ```
-npm install frappe-gantt
+npm install @jcsr02/gantt
 ```
 
 ### Usage
