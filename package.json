@@ -1,6 +1,6 @@
 {
   "name": "@jcsr02/gantt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A simple, modern, interactive gantt library for the web with additions for the film university babelsberg KONRAD WOLD",
   "main": "src/index.js",
   "scripts": {
