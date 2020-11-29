@@ -1,6 +1,6 @@
 {
-  "name": "frappe-gantt-fbkw",
-  "version": "0.3.8",
+  "name": "@jcsr02/gantt",
+  "version": "1.0.0",
   "description": "A simple, modern, interactive gantt library for the web with additions for the film university babelsberg KONRAD WOLD",
   "main": "src/index.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/MichaWe/gantt.git"
+    "url": "https://github.com/jcsr02/gantt.git"
   },
   "keywords": [
     "gantt",
@@ -23,12 +23,9 @@
     "interactive gantt",
     "project management"
   ],
-  "author": "Faris Ansari, Michael Witt",
+  "author": "JC Ramos",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/MichaWe/gantt/issues"
-  },
-  "homepage": "https://github.com/MichaWe/gantt",
+  "homepage": "https://github.com/jcsr02/gantt",
   "devDependencies": {
     "babel-preset-env": "^1.6.1",
     "deepmerge": "^2.0.1",
@@ -46,5 +43,6 @@
   ],
   "dependencies": {
     "yarn": "^1.22.0"
-  }
+  },
+  "publishConfig": { "registry": "https://npm.pkg.github.com/" }
 }
